@@ -1,0 +1,90 @@
+pipeline {
+    agent any
+    environment {
+        GIT_CREDENTIALS = credentials('791e2b80-a8ba-4d19-a472-a72a33d269f4')
+        JAVA_HOME = '/usr/lib/jvm/java-17-openjdk-amd64'
+        PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                script {
+                    git url: 'https://github.com/sushant-kataria/jenkins.git',
+                        branch: 'main',
+                        credentialsId: '791e2b80-a8ba-4d19-a472-a72a33d269f4'
+                }
+                echo 'Code checked out successfully'
+            }
+        }
+        stage('Install Terraform') {
+            steps {
+                script {
+                    sh '''
+                        if ! command -v terraform >/dev/null 2>&1; then
+                            echo "Terraform not found, installing..."
+                            sudo apt update
+                            sudo apt install -y wget unzip
+                            wget https://releases.hashicorp.com/terraform/1.5.7/terraform_1.5.7_linux_amd64.zip
+                            sudo unzip terraform_1.5.7_linux_amd64.zip -d /usr/local/bin/
+                            rm terraform_1.5.7_linux_amd64.zip
+                        else
+                            echo "Terraform already installed"
+                        fi
+                    '''
+                }
+                echo 'Terraform setup completed'
+            }
+        }
+        stage('Build') {
+            steps {
+                script {
+                    sh 'terraform fmt -check || terraform fmt' // Format and validate syntax
+                }
+                echo 'Terraform files formatted'
+            }
+        }
+        stage('Test') {
+            steps {
+                script {
+                    sh 'terraform validate' // Basic syntax and configuration check
+                }
+                echo 'Terraform configuration validated'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                script {
+                    withCredentials([azureServicePrincipal(credentialsId: '18bf7359-f7d8-4b3e-a4cb-65d006e23615')]) {
+                        sh '''
+                            terraform init
+                            terraform apply -auto-approve \
+                                -var="client_id=${AZURE_CLIENT_ID}" \
+                                -var="client_secret=${AZURE_CLIENT_SECRET}" \
+                                -var="tenant_id=${AZURE_TENANT_ID}" \
+                                -var="subscription_id=${AZURE_SUBSCRIPTION_ID}"
+                        '''
+                    }
+                }
+                echo 'RBAC and policies deployed successfully'
+            }
+        }
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    withSonarQubeEnv('SonarQube') {
+                        sh '/usr/local/bin/sonar-scanner'
+                    }
+                }
+                echo 'SonarQube analysis completed'
+            }
+        }
+    }
+    post {
+        always {
+            echo 'RBAC/Policies pipeline completed'
+        }
+        failure {
+            echo 'RBAC/Policies pipeline failed, check logs for details'
+        }
+    }
+}

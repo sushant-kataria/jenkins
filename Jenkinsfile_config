@@ -1,0 +1,80 @@
+pipeline {
+    agent any
+    environment {
+        GIT_CREDENTIALS = credentials('791e2b80-a8ba-4d19-a472-a72a33d269f4')
+        JAVA_HOME = '/usr/lib/jvm/java-17-openjdk-amd64'
+        PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                script {
+                    git url: 'https://github.com/sushant-kataria/jenkins.git',
+                        branch: 'main',
+                        credentialsId: '791e2b80-a8ba-4d19-a472-a72a33d269f4'
+                }
+                echo 'Code checked out successfully'
+            }
+        }
+        stage('Install Ansible') {
+            steps {
+                script {
+                    sh '''
+                        if ! command -v ansible-playbook >/dev/null 2>&1; then
+                            echo "Ansible not found, installing..."
+                            sudo apt update
+                            sudo apt install -y software-properties-common
+                            sudo add-apt-repository --yes --update ppa:ansible/ansible
+                            sudo apt install -y ansible
+                        else
+                            echo "Ansible already installed"
+                        fi
+                    '''
+                }
+                echo 'Ansible setup completed'
+            }
+        }
+        stage('Build') {
+            steps {
+                script {
+                    sh 'ansible-playbook -v apache.yml --syntax-check' // Check playbook syntax
+                }
+                echo 'Ansible playbook syntax checked'
+            }
+        }
+        stage('Test') {
+            steps {
+                script {
+                    sh 'ansible-playbook apache.yml --check' // Dry run to test
+                }
+                echo 'Ansible configuration tested'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                script {
+                    sh 'ansible-playbook apache.yml'
+                }
+                echo 'Configuration deployed successfully'
+            }
+        }
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    withSonarQubeEnv('SonarQube') {
+                        sh '/usr/local/bin/sonar-scanner'
+                    }
+                }
+                echo 'SonarQube analysis completed'
+            }
+        }
+    }
+    post {
+        always {
+            echo 'Configuration pipeline completed'
+        }
+        failure {
+            echo 'Configuration pipeline failed, check logs for details'
+        }
+    }
+}
