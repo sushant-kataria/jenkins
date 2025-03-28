@@ -37,7 +37,7 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                    sh 'ansible-playbook -v apache.yml --syntax-check' // Check playbook syntax
+                    sh 'ansible-playbook -v config/apache.yml --syntax-check'
                 }
                 echo 'Ansible playbook syntax checked'
             }
@@ -45,7 +45,7 @@ pipeline {
         stage('Test') {
             steps {
                 script {
-                    sh 'ansible-playbook apache.yml --check' // Dry run to test
+                    sh 'ansible-playbook config/apache.yml --check'
                 }
                 echo 'Ansible configuration tested'
             }
@@ -53,7 +53,7 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    sh 'ansible-playbook apache.yml'
+                    sh 'ansible-playbook config/apache.yml'
                 }
                 echo 'Configuration deployed successfully'
             }
@@ -61,8 +61,8 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    withSonarQubeEnv('SonarQube') {
-                        sh '/usr/local/bin/sonar-scanner'
+                    withSonarQubeEnv('SonarCloud') {
+                        sh 'cd config && /usr/local/bin/sonar-scanner'
                     }
                 }
                 echo 'SonarQube analysis completed'

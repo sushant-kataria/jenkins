@@ -38,7 +38,7 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                    sh 'terraform fmt -check || terraform fmt' // Format and validate syntax
+                    sh 'cd infra && terraform fmt -check || terraform fmt'
                 }
                 echo 'Terraform files formatted'
             }
@@ -46,7 +46,7 @@ pipeline {
         stage('Test') {
             steps {
                 script {
-                    sh 'terraform validate' // Basic syntax and configuration check
+                    sh 'cd infra && terraform validate'
                 }
                 echo 'Terraform configuration validated'
             }
@@ -56,6 +56,7 @@ pipeline {
                 script {
                     withCredentials([azureServicePrincipal(credentialsId: '18bf7359-f7d8-4b3e-a4cb-65d006e23615')]) {
                         sh '''
+                            cd infra
                             terraform init
                             terraform apply -auto-approve \
                                 -var="client_id=${AZURE_CLIENT_ID}" \
@@ -71,8 +72,8 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    withSonarQubeEnv('SonarQube') {
-                        sh '/usr/local/bin/sonar-scanner'
+                    withSonarQubeEnv('SonarCloud') {
+                        sh 'cd infra && /usr/local/bin/sonar-scanner'
                     }
                 }
                 echo 'SonarQube analysis completed'
