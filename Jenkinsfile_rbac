@@ -35,6 +35,19 @@ pipeline {
                 echo 'Terraform setup completed'
             }
         }
+        stage('Initialize Terraform') {
+            steps {
+                script {
+                    withCredentials([azureServicePrincipal(credentialsId: '18bf7359-f7d8-4b3e-a4cb-65d006e23615')]) {
+                        sh '''
+                            cd rbac
+                            terraform init
+                        '''
+                    }
+                }
+                echo 'Terraform initialized successfully'
+            }
+        }
         stage('Build') {
             steps {
                 script {
@@ -57,7 +70,6 @@ pipeline {
                     withCredentials([azureServicePrincipal(credentialsId: '18bf7359-f7d8-4b3e-a4cb-65d006e23615')]) {
                         sh '''
                             cd rbac
-                            terraform init
                             terraform apply -auto-approve \
                                 -var="client_id=${AZURE_CLIENT_ID}" \
                                 -var="client_secret=${AZURE_CLIENT_SECRET}" \
