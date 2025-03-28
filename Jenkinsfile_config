@@ -61,7 +61,9 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    withSonarQubeEnv('SonarCloud') {
+                    sh 'echo $JAVA_HOME'  
+            	    sh 'java -version'	
+		    withSonarQubeEnv('SonarCloud') {
                         sh 'cd config && /usr/local/bin/sonar-scanner'
                     }
                 }
