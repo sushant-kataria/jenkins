@@ -60,16 +60,15 @@ pipeline {
         }
         stage('SonarQube Analysis') {
             tools {
-                jdk "jdk17"  // Corrected JDK name (no space, consistent naming)
+                jdk "jdk17"
             }
             environment {
-                scannerHome = tool 'SonarCloud Scanner'  // Fixed indentation
+                scannerHome = tool 'SonarCloud Scanner'
             }
             steps {
-                withSonarQubeEnv(installationName: 'SonarCloud') {  // Fixed syntax and indentation
-                    sh "${scannerHome}/bin/sonar-scanner -X"
+                withSonarQubeEnv(installationName: 'SonarCloud') {
+                    sh "cd config && ${scannerHome}/bin/sonar-scanner -X"
                 }
-                // Optional: Add quality gate check
                 script {
                     def qualityGate = waitForQualityGate()
                     if (qualityGate.status != 'OK') {
