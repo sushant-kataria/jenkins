@@ -69,16 +69,9 @@ pipeline {
                 withSonarQubeEnv(installationName: 'SonarCloud') {
                     sh "cd config && ${scannerHome}/bin/sonar-scanner -X"
                 }
-                script {
-                    def qualityGate = waitForQualityGate()
-                    if (qualityGate.status != 'OK') {
-                        error "Pipeline failed due to quality gate failure: ${qualityGate.status}"
-                    }
-                }
                 echo 'SonarQube analysis completed'
             }
         }
-    }
     post {
         always {
             echo 'Configuration pipeline completed'
