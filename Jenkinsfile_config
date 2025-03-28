@@ -34,7 +34,7 @@ pipeline {
                 echo 'Ansible setup completed'
             }
         }
-        stage('Build') {
+        stage('Build Syntax Check') {
             steps {
                 script {
                     sh 'ansible-playbook -v config/apache.yml --syntax-check'
@@ -42,7 +42,7 @@ pipeline {
                 echo 'Ansible playbook syntax checked'
             }
         }
-        stage('Test') {
+        stage('Test Configuration') {
             steps {
                 script {
                     sh 'ansible-playbook config/apache.yml --check'
@@ -72,6 +72,7 @@ pipeline {
                 echo 'SonarQube analysis completed'
             }
         }
+    }
     post {
         always {
             echo 'Configuration pipeline completed'
