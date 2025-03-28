@@ -58,13 +58,21 @@ pipeline {
                 echo 'Configuration deployed successfully'
             }
         }
-        stage('SonarQube Analysis') {
+        stage('SonarCloud Analysis') {
+            tools {
+                jdk "jdk17" // Name of JDK installation in Global Tool Configuration
+            }
+            environment {
+                scannerHome = tool 'SonarCloud Scanner' // Name of SonarScanner in Global Tool Configuration
+            }
             steps {
+                withSonarQubeEnv(installationName: 'SonarCloud') {
+                    sh "${scannerHome}/bin/sonar-scanner -X"
+                }
                 script {
-                    sh 'echo $JAVA_HOME'  
-            	    sh 'java -version'	
-		    withSonarQubeEnv('SonarCloud') {
-                        sh 'cd config && /usr/local/bin/sonar-scanner'
+                    def qualityGate = waitForQualityGate()
+                    if (qualityGate.status != 'OK') {
+                        error "Pipeline failed due to quality gate failure: ${qualityGate.status}"
                     }
                 }
                 echo 'SonarQube analysis completed'
