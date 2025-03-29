@@ -1,0 +1,7 @@
+---
+- name: Sample RBAC Playbook
+  hosts: localhost
+  tasks:
+    - name: Print RBAC message
+      debug:
+        msg: "RBAC configuration applied"
