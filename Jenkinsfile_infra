@@ -37,7 +37,14 @@ pipeline {
         stage('Infra Syntax Check') {
             steps {
                 script {
-                    sh 'ansible-playbook -v infra/infra.yml --syntax-check'
+                    sh '''
+                        if [ -f infra/infra.yml ]; then
+                            ansible-playbook -v infra/infra.yml --syntax-check
+                        else
+                            echo "ERROR: infra/infra.yml not found in repository"
+                            exit 1
+                        fi
+                    '''
                 }
                 echo 'Infra playbook syntax checked'
             }
@@ -45,7 +52,14 @@ pipeline {
         stage('Infra Test') {
             steps {
                 script {
-                    sh 'ansible-playbook infra/infra.yml --check'
+                    sh '''
+                        if [ -f infra/infra.yml ]; then
+                            ansible-playbook infra/infra.yml --check
+                        else
+                            echo "ERROR: infra/infra.yml not found in repository"
+                            exit 1
+                        fi
+                    '''
                 }
                 echo 'Infra configuration tested'
             }
@@ -53,7 +67,14 @@ pipeline {
         stage('Infra Deploy') {
             steps {
                 script {
-                    sh 'ansible-playbook infra/infra.yml'
+                    sh '''
+                        if [ -f infra/infra.yml ]; then
+                            ansible-playbook infra/infra.yml
+                        else
+                            echo "ERROR: infra/infra.yml not found in repository"
+                            exit 1
+                        fi
+                    '''
                 }
                 echo 'Infra configuration deployed successfully'
             }
@@ -67,7 +88,14 @@ pipeline {
             }
             steps {
                 withSonarQubeEnv(installationName: 'SonarCloud') {
-                    sh "cd infra && ${scannerHome}/bin/sonar-scanner -X"
+                    sh '''
+                        if [ -d infra ]; then
+                            cd infra && ${scannerHome}/bin/sonar-scanner -X
+                        else
+                            echo "ERROR: infra directory not found"
+                            exit 1
+                        fi
+                    '''
                 }
                 echo 'SonarQube analysis completed for infra'
             }
