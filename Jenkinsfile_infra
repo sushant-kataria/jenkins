@@ -13,91 +13,72 @@ pipeline {
                         branch: 'main',
                         credentialsId: '791e2b80-a8ba-4d19-a472-a72a33d269f4'
                 }
-                echo 'Code checked out successfully'
+                echo 'Infra code checked out successfully'
             }
         }
-        stage('Install Terraform') {
+        stage('Install Ansible') {
             steps {
                 script {
                     sh '''
-                        if ! command -v terraform >/dev/null 2>&1; then
-                            echo "Terraform not found, installing..."
+                        if ! command -v ansible-playbook >/dev/null 2>&1; then
+                            echo "Ansible not found, installing..."
                             sudo apt update
-                            sudo apt install -y wget unzip
-                            wget https://releases.hashicorp.com/terraform/1.5.7/terraform_1.5.7_linux_amd64.zip
-                            sudo unzip terraform_1.5.7_linux_amd64.zip -d /usr/local/bin/
-                            rm terraform_1.5.7_linux_amd64.zip
+                            sudo apt install -y software-properties-common
+                            sudo add-apt-repository --yes --update ppa:ansible/ansible
+                            sudo apt install -y ansible
                         else
-                            echo "Terraform already installed"
+                            echo "Ansible already installed"
                         fi
                     '''
                 }
-                echo 'Terraform setup completed'
+                echo 'Ansible setup completed for infra'
             }
         }
-        stage('Initialize Terraform') {
+        stage('Infra Syntax Check') {
             steps {
                 script {
-                    withCredentials([azureServicePrincipal(credentialsId: '18bf7359-f7d8-4b3e-a4cb-65d006e23615')]) {
-                        sh '''
-                            cd infra
-                            terraform init
-                        '''
-                    }
+                    sh 'ansible-playbook -v infra/infra.yml --syntax-check'
                 }
-                echo 'Terraform initialized successfully'
+                echo 'Infra playbook syntax checked'
             }
         }
-        stage('Build') {
+        stage('Infra Test') {
             steps {
                 script {
-                    sh 'cd infra && terraform fmt -check || terraform fmt'
+                    sh 'ansible-playbook infra/infra.yml --check'
                 }
-                echo 'Terraform files formatted'
+                echo 'Infra configuration tested'
             }
         }
-        stage('Test') {
+        stage('Infra Deploy') {
             steps {
                 script {
-                    sh 'cd infra && terraform validate'
+                    sh 'ansible-playbook infra/infra.yml'
                 }
-                echo 'Terraform configuration validated'
+                echo 'Infra configuration deployed successfully'
             }
         }
-        stage('Deploy') {
-            steps {
-                script {
-                    withCredentials([azureServicePrincipal(credentialsId: '18bf7359-f7d8-4b3e-a4cb-65d006e23615')]) {
-                        sh '''
-                            cd infra
-                            terraform apply -auto-approve \
-                                -var="client_id=${AZURE_CLIENT_ID}" \
-                                -var="client_secret=${AZURE_CLIENT_SECRET}" \
-                                -var="tenant_id=${AZURE_TENANT_ID}" \
-                                -var="subscription_id=${AZURE_SUBSCRIPTION_ID}"
-                        '''
-                    }
-                }
-                echo 'Infrastructure deployed successfully'
+        stage('SonarQube Analysis - Infra') {
+            tools {
+                jdk "jdk17"
             }
-        }
-        stage('SonarQube Analysis') {
+            environment {
+                scannerHome = tool 'SonarCloud Scanner'
+            }
             steps {
-                script {
-                    withSonarQubeEnv('SonarCloud') {
-                        sh 'cd infra && /usr/local/bin/sonar-scanner'
-                    }
+                withSonarQubeEnv(installationName: 'SonarCloud') {
+                    sh "cd infra && ${scannerHome}/bin/sonar-scanner -X"
                 }
-                echo 'SonarQube analysis completed'
+                echo 'SonarQube analysis completed for infra'
             }
         }
     }
     post {
         always {
-            echo 'Infrastructure pipeline completed'
+            echo 'Infra pipeline completed'
         }
         failure {
-            echo 'Infrastructure pipeline failed, check logs for details'
+            echo 'Infra pipeline failed, check logs for details'
         }
     }
 }
