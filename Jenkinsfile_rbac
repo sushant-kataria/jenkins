@@ -16,7 +16,7 @@ pipeline {
                 echo 'RBAC code checked out successfully'
             }
         }
-        stage('Install Ansible') {
+        stage('Install Dependencies') {
             steps {
                 script {
                     sh '''
@@ -29,27 +29,34 @@ pipeline {
                         else
                             echo "Ansible already installed"
                         fi
+                        if ! command -v ansible-lint >/dev/null 2>&1; then
+                            echo "ansible-lint not found, installing..."
+                            sudo apt install -y python3-pip
+                            pip3 install ansible-lint
+                        else
+                            echo "ansible-lint already installed"
+                        fi
                     '''
                 }
-                echo 'Ansible setup completed for RBAC'
+                echo 'Dependencies setup completed for RBAC'
             }
         }
-        stage('RBAC Syntax Check') {
+        stage('Unit Tests - RBAC') {
             steps {
                 script {
                     sh '''
                         if [ -f rbac/rbac.yml ]; then
-                            ansible-playbook -v rbac/rbac.yml --syntax-check
+                            ansible-lint rbac/rbac.yml
                         else
                             echo "ERROR: rbac/rbac.yml not found"
                             exit 1
                         fi
                     '''
                 }
-                echo 'RBAC playbook syntax checked'
+                echo 'Unit tests completed for RBAC playbook'
             }
         }
-        stage('RBAC Test') {
+        stage('Integration Tests - RBAC') {
             steps {
                 script {
                     sh '''
@@ -61,10 +68,10 @@ pipeline {
                         fi
                     '''
                 }
-                echo 'RBAC configuration tested'
+                echo 'Integration tests (dry-run) completed for RBAC'
             }
         }
-        stage('RBAC Deploy') {
+        stage('Deploy RBAC') {
             steps {
                 script {
                     sh '''
@@ -76,7 +83,26 @@ pipeline {
                         fi
                     '''
                 }
-                echo 'RBAC configuration deployed successfully'
+                echo 'RBAC deployed successfully'
+            }
+        }
+        stage('Validation Checks - RBAC') {
+            steps {
+                script {
+                    sh '''
+                        # Example: Check if a user/role exists (adjust based on rbac.yml)
+                        if [ -f rbac/rbac.yml ]; then
+                            ansible all -m command -a "id testuser" || {
+                                echo "ERROR: RBAC testuser not configured"
+                                exit 1
+                            }
+                        else
+                            echo "ERROR: rbac/rbac.yml not found"
+                            exit 1
+                        fi
+                    '''
+                }
+                echo 'Validation checks passed for RBAC'
             }
         }
         stage('SonarQube Analysis - RBAC') {

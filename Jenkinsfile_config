@@ -16,7 +16,7 @@ pipeline {
                 echo 'Config code checked out successfully'
             }
         }
-        stage('Install Ansible') {
+        stage('Install Dependencies') {
             steps {
                 script {
                     sh '''
@@ -29,24 +29,84 @@ pipeline {
                         else
                             echo "Ansible already installed"
                         fi
+                        if ! command -v ansible-lint >/dev/null 2>&1; then
+                            echo "ansible-lint not found, installing..."
+                            sudo apt install -y python3-pip
+                            pip3 install ansible-lint
+                        else
+                            echo "ansible-lint already installed"
+                        fi
                     '''
                 }
-                echo 'Ansible setup completed for config'
+                echo 'Dependencies setup completed for config'
             }
         }
-        stage('Config Syntax Check') {
+        stage('Unit Tests - Config') {
             steps {
                 script {
                     sh '''
                         if [ -f config/apache.yml ]; then
-                            ansible-playbook -v config/apache.yml --syntax-check
+                            ansible-lint config/apache.yml
                         else
                             echo "ERROR: config/apache.yml not found"
                             exit 1
                         fi
                     '''
                 }
-                echo 'Config playbook syntax checked'
+                echo 'Unit tests completed for config playbook'
+            }
+        }
+        stage('Integration Tests - Config') {
+            steps {
+                script {
+                    sh '''
+                        if [ -f config/apache.yml ]; then
+                            ansible-playbook config/apache.yml --check
+                        else
+                            echo "ERROR: config/apache.yml not found"
+                            exit 1
+                        fi
+                    '''
+                }
+                echo 'Integration tests (dry-run) completed for config'
+            }
+        }
+        stage('Deploy Config') {
+            steps {
+                script {
+                    sh '''
+                        if [ -f config/apache.yml ]; then
+                            ansible-playbook config/apache.yml
+                        else
+                            echo "ERROR: config/apache.yml not found"
+                            exit 1
+                        fi
+                    '''
+                }
+                echo 'Config deployed successfully'
+            }
+        }
+        stage('Validation Checks - Config') {
+            steps {
+                script {
+                    sh '''
+                        # Assuming apache.yml configures an Apache service
+                        if [ -f config/apache.yml ]; then
+                            ansible all -m command -a "systemctl is-active apache2" || {
+                                echo "ERROR: Apache service is not active"
+                                exit 1
+                            }
+                            ansible all -m command -a "curl -s -o /dev/null -w '%{http_code}' localhost" | grep 200 || {
+                                echo "ERROR: Apache is not responding with HTTP 200"
+                                exit 1
+                            }
+                        else
+                            echo "ERROR: config/apache.yml not found"
+                            exit 1
+                        fi
+                    '''
+                }
+                echo 'Validation checks passed for config'
             }
         }
         stage('SonarQube Analysis - Config') {

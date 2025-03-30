@@ -16,7 +16,7 @@ pipeline {
                 echo 'Infra code checked out successfully'
             }
         }
-        stage('Install Ansible') {
+        stage('Install Dependencies') {
             steps {
                 script {
                     sh '''
@@ -29,27 +29,34 @@ pipeline {
                         else
                             echo "Ansible already installed"
                         fi
+                        if ! command -v ansible-lint >/dev/null 2>&1; then
+                            echo "ansible-lint not found, installing..."
+                            sudo apt install -y python3-pip
+                            pip3 install ansible-lint
+                        else
+                            echo "ansible-lint already installed"
+                        fi
                     '''
                 }
-                echo 'Ansible setup completed for infra'
+                echo 'Dependencies setup completed for infra'
             }
         }
-        stage('Infra Syntax Check') {
+        stage('Unit Tests - Infra') {
             steps {
                 script {
                     sh '''
                         if [ -f infra/infra.yml ]; then
-                            ansible-playbook -v infra/infra.yml --syntax-check
+                            ansible-lint infra/infra.yml
                         else
                             echo "ERROR: infra/infra.yml not found"
                             exit 1
                         fi
                     '''
                 }
-                echo 'Infra playbook syntax checked'
+                echo 'Unit tests completed for infra playbook'
             }
         }
-        stage('Infra Test') {
+        stage('Integration Tests - Infra') {
             steps {
                 script {
                     sh '''
@@ -61,10 +68,10 @@ pipeline {
                         fi
                     '''
                 }
-                echo 'Infra configuration tested'
+                echo 'Integration tests (dry-run) completed for infra'
             }
         }
-        stage('Infra Deploy') {
+        stage('Deploy Infra') {
             steps {
                 script {
                     sh '''
@@ -76,7 +83,26 @@ pipeline {
                         fi
                     '''
                 }
-                echo 'Infra configuration deployed successfully'
+                echo 'Infra deployed successfully'
+            }
+        }
+        stage('Validation Checks - Infra') {
+            steps {
+                script {
+                    sh '''
+                        # Example: Check if a specific file or service is present
+                        if [ -f infra/infra.yml ]; then
+                            ansible all -m command -a "test -f /etc/infra_config && echo OK" | grep OK || {
+                                echo "ERROR: Infra configuration file not found"
+                                exit 1
+                            }
+                        else
+                            echo "ERROR: infra/infra.yml not found"
+                            exit 1
+                        fi
+                    '''
+                }
+                echo 'Validation checks passed for infra'
             }
         }
         stage('SonarQube Analysis - Infra') {
