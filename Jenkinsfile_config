@@ -29,13 +29,14 @@ pipeline {
                         else
                             echo "Ansible already installed"
                         fi
-                        if ! command -v ansible-lint >/dev/null 2>&1; then
-                            echo "ansible-lint not found, installing..."
-                            sudo apt install -y python3-pip
-                            pip3 install ansible-lint
+                        if ! command -v pipx >/dev/null 2>&1; then
+                            echo "pipx not found, installing..."
+                            sudo apt install -y pipx
                         else
-                            echo "ansible-lint already installed"
+                            echo "pipx already installed"
                         fi
+                        # Ensure ansible-lint is available via pipx
+                        pipx install ansible-lint || pipx upgrade ansible-lint
                     '''
                 }
                 echo 'Dependencies setup completed for config'
@@ -46,7 +47,7 @@ pipeline {
                 script {
                     sh '''
                         if [ -f config/apache.yml ]; then
-                            ansible-lint config/apache.yml
+                            pipx run ansible-lint config/apache.yml
                         else
                             echo "ERROR: config/apache.yml not found"
                             exit 1
@@ -90,7 +91,6 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        # Assuming apache.yml configures an Apache service
                         if [ -f config/apache.yml ]; then
                             ansible all -m command -a "systemctl is-active apache2" || {
                                 echo "ERROR: Apache service is not active"
