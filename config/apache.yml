@@ -1,6 +1,7 @@
 ---
 - name: Configure Apache
   hosts: all
+  become: yes  # Required for installing packages and starting services
   tasks:
     - name: Install Apache
       ansible.builtin.apt:
@@ -10,3 +11,4 @@
       ansible.builtin.service:
         name: apache2
         state: started
+        enabled: yes
