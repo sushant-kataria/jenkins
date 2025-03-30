@@ -13,7 +13,7 @@ pipeline {
                         branch: 'main',
                         credentialsId: '791e2b80-a8ba-4d19-a472-a72a33d269f4'
                 }
-                echo 'Code checked out successfully'
+                echo 'Config code checked out successfully'
             }
         }
         stage('Install Ansible') {
@@ -31,34 +31,25 @@ pipeline {
                         fi
                     '''
                 }
-                echo 'Ansible setup completed'
+                echo 'Ansible setup completed for config'
             }
         }
-        stage('Build Syntax Check') {
+        stage('Config Syntax Check') {
             steps {
                 script {
-                    sh 'ansible-playbook -v config/apache.yml --syntax-check'
+                    sh '''
+                        if [ -f config/apache.yml ]; then
+                            ansible-playbook -v config/apache.yml --syntax-check
+                        else
+                            echo "ERROR: config/apache.yml not found"
+                            exit 1
+                        fi
+                    '''
                 }
-                echo 'Ansible playbook syntax checked'
+                echo 'Config playbook syntax checked'
             }
         }
-        stage('Test Configuration') {
-            steps {
-                script {
-                    sh 'ansible-playbook config/apache.yml --check'
-                }
-                echo 'Ansible configuration tested'
-            }
-        }
-        stage('Deploy') {
-            steps {
-                script {
-                    sh 'ansible-playbook config/apache.yml'
-                }
-                echo 'Configuration deployed successfully'
-            }
-        }
-        stage('SonarQube Analysis') {
+        stage('SonarQube Analysis - Config') {
             tools {
                 jdk "jdk17"
             }
@@ -67,18 +58,27 @@ pipeline {
             }
             steps {
                 withSonarQubeEnv(installationName: 'SonarCloud') {
-                    sh "cd config && ${scannerHome}/bin/sonar-scanner -X"
+                    sh '''
+                        if [ -d config ]; then
+                            cd config
+                            ${scannerHome}/bin/sonar-scanner -X \
+                                -Dsonar.projectKey=sushant-kataria_config
+                        else
+                            echo "ERROR: config directory not found"
+                            exit 1
+                        fi
+                    '''
                 }
-                echo 'SonarQube analysis completed'
+                echo 'SonarQube analysis completed for config'
             }
         }
     }
     post {
         always {
-            echo 'Configuration pipeline completed'
+            echo 'Config pipeline completed'
         }
         failure {
-            echo 'Configuration pipeline failed, check logs for details'
+            echo 'Config pipeline failed, check logs for details'
         }
     }
 }

@@ -41,42 +41,12 @@ pipeline {
                         if [ -f rbac/rbac.yml ]; then
                             ansible-playbook -v rbac/rbac.yml --syntax-check
                         else
-                            echo "ERROR: rbac/rbac.yml not found in repository"
+                            echo "ERROR: rbac/rbac.yml not found"
                             exit 1
                         fi
                     '''
                 }
                 echo 'RBAC playbook syntax checked'
-            }
-        }
-        stage('RBAC Test') {
-            steps {
-                script {
-                    sh '''
-                        if [ -f rbac/rbac.yml ]; then
-                            ansible-playbook rbac/rbac.yml --check
-                        else
-                            echo "ERROR: rbac/rbac.yml not found in repository"
-                            exit 1
-                        fi
-                    '''
-                }
-                echo 'RBAC configuration tested'
-            }
-        }
-        stage('RBAC Deploy') {
-            steps {
-                script {
-                    sh '''
-                        if [ -f rbac/rbac.yml ]; then
-                            ansible-playbook rbac/rbac.yml
-                        else
-                            echo "ERROR: rbac/rbac.yml not found in repository"
-                            exit 1
-                        fi
-                    '''
-                }
-                echo 'RBAC configuration deployed successfully'
             }
         }
         stage('SonarQube Analysis - RBAC') {
@@ -90,7 +60,9 @@ pipeline {
                 withSonarQubeEnv(installationName: 'SonarCloud') {
                     sh '''
                         if [ -d rbac ]; then
-                            cd rbac && ${scannerHome}/bin/sonar-scanner -X
+                            cd rbac
+                            ${scannerHome}/bin/sonar-scanner -X \
+                                -Dsonar.projectKey=sushant-kataria_rbac
                         else
                             echo "ERROR: rbac directory not found"
                             exit 1

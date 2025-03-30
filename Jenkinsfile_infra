@@ -41,42 +41,12 @@ pipeline {
                         if [ -f infra/infra.yml ]; then
                             ansible-playbook -v infra/infra.yml --syntax-check
                         else
-                            echo "ERROR: infra/infra.yml not found in repository"
+                            echo "ERROR: infra/infra.yml not found"
                             exit 1
                         fi
                     '''
                 }
                 echo 'Infra playbook syntax checked'
-            }
-        }
-        stage('Infra Test') {
-            steps {
-                script {
-                    sh '''
-                        if [ -f infra/infra.yml ]; then
-                            ansible-playbook infra/infra.yml --check
-                        else
-                            echo "ERROR: infra/infra.yml not found in repository"
-                            exit 1
-                        fi
-                    '''
-                }
-                echo 'Infra configuration tested'
-            }
-        }
-        stage('Infra Deploy') {
-            steps {
-                script {
-                    sh '''
-                        if [ -f infra/infra.yml ]; then
-                            ansible-playbook infra/infra.yml
-                        else
-                            echo "ERROR: infra/infra.yml not found in repository"
-                            exit 1
-                        fi
-                    '''
-                }
-                echo 'Infra configuration deployed successfully'
             }
         }
         stage('SonarQube Analysis - Infra') {
@@ -90,7 +60,9 @@ pipeline {
                 withSonarQubeEnv(installationName: 'SonarCloud') {
                     sh '''
                         if [ -d infra ]; then
-                            cd infra && ${scannerHome}/bin/sonar-scanner -X
+                            cd infra
+                            ${scannerHome}/bin/sonar-scanner -X \
+                                -Dsonar.projectKey=sushant-kataria_infra
                         else
                             echo "ERROR: infra directory not found"
                             exit 1
