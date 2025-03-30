@@ -62,7 +62,6 @@ pipeline {
                 script {
                     sh '''
                         if [ -f config/apache.yml ]; then
-                            # Use localhost for testing
                             echo "localhost ansible_connection=local" > inventory.ini
                             ansible-playbook -i inventory.ini config/apache.yml --check
                         else
@@ -79,7 +78,6 @@ pipeline {
                 script {
                     sh '''
                         if [ -f config/apache.yml ]; then
-                            # Use localhost for deployment
                             echo "localhost ansible_connection=local" > inventory.ini
                             ansible-playbook -i inventory.ini config/apache.yml
                         else
@@ -96,12 +94,10 @@ pipeline {
                 script {
                     sh '''
                         if [ -f config/apache.yml ]; then
-                            # Check Apache service on localhost
                             ansible -i inventory.ini all -m command -a "systemctl is-active apache2" || {
                                 echo "ERROR: Apache service is not active"
                                 exit 1
                             }
-                            # Check HTTP response on localhost
                             ansible -i inventory.ini all -m command -a "curl -s -o /dev/null -w '%{http_code}' localhost" | grep 200 || {
                                 echo "ERROR: Apache is not responding with HTTP 200"
                                 exit 1
