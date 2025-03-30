@@ -3,7 +3,7 @@ pipeline {
     environment {
         GIT_CREDENTIALS = credentials('791e2b80-a8ba-4d19-a472-a72a33d269f4')
         JAVA_HOME = '/usr/lib/jvm/java-17-openjdk-amd64'
-        PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+        PATH = "${env.JAVA_HOME}/bin:/var/lib/jenkins/.local/bin:${env.PATH}" // Add pipx bin path
     }
     stages {
         stage('Checkout') {
@@ -35,8 +35,10 @@ pipeline {
                         else
                             echo "pipx already installed"
                         fi
-                        # Ensure ansible-lint is available via pipx
                         pipx install ansible-lint || pipx upgrade ansible-lint
+                        # Ensure PATH includes pipx binaries
+                        echo "export PATH=/var/lib/jenkins/.local/bin:$PATH" >> ~/.bashrc
+                        source ~/.bashrc
                     '''
                 }
                 echo 'Dependencies setup completed for config'
