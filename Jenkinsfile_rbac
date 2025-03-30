@@ -94,7 +94,6 @@ pipeline {
                 script {
                     sh '''
                         if [ -f rbac/rbac.yml ]; then
-                            # Example: Check if testuser exists
                             ansible -i inventory.ini all -m command -a "id testuser" || {
                                 echo "ERROR: RBAC testuser not configured"
                                 exit 1

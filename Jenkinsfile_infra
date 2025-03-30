@@ -94,7 +94,6 @@ pipeline {
                 script {
                     sh '''
                         if [ -f infra/infra.yml ]; then
-                            # Example: Check for a config file created by infra.yml
                             ansible -i inventory.ini all -m command -a "test -f /etc/infra_config && echo OK" | grep OK || {
                                 echo "ERROR: Infra configuration file not found"
                                 exit 1
