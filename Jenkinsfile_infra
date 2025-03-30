@@ -90,13 +90,12 @@ pipeline {
                 withSonarQubeEnv(installationName: 'SonarCloud') {
                     sh '''
                         if [ -d infra ]; then
-                            cd infra && ${scannerHome}/bin/sonar-scanner -X
+                            cd infra && ${scannerHome}/bin/sonar-scanner -X -Dsonar.qualitygate.wait=true
                         else
                             echo "ERROR: infra directory not found"
                             exit 1
                         fi
                     '''
-                    waitForQualityGate abortPipeline: true
                     echo 'SonarQube analysis and quality gate check completed for infra'
                 }
             }

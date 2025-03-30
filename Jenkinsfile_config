@@ -60,13 +60,12 @@ pipeline {
                 withSonarQubeEnv(installationName: 'SonarCloud') {
                     sh '''
                         if [ -d config ]; then
-                            cd config && ${scannerHome}/bin/sonar-scanner -X
+                            cd config && ${scannerHome}/bin/sonar-scanner -X -Dsonar.qualitygate.wait=true
                         else
                             echo "ERROR: config directory not found"
                             exit 1
                         fi
                     '''
-                    waitForQualityGate abortPipeline: true
                     echo 'SonarQube analysis and quality gate check completed for config'
                 }
             }
