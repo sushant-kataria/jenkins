@@ -60,16 +60,15 @@ pipeline {
                 withSonarQubeEnv(installationName: 'SonarCloud') {
                     sh '''
                         if [ -d config ]; then
-                            cd config
-                            ${scannerHome}/bin/sonar-scanner -X \
-                                -Dsonar.projectKey=sushant-kataria_config
+                            cd config && ${scannerHome}/bin/sonar-scanner -X
                         else
                             echo "ERROR: config directory not found"
                             exit 1
                         fi
                     '''
+                    waitForQualityGate abortPipeline: true
                 }
-                echo 'SonarQube analysis completed for config'
+                echo 'SonarQube analysis and quality gate check completed for config'
             }
         }
     }
