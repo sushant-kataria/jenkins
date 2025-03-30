@@ -3,7 +3,7 @@ pipeline {
     environment {
         GIT_CREDENTIALS = credentials('791e2b80-a8ba-4d19-a472-a72a33d269f4')
         JAVA_HOME = '/usr/lib/jvm/java-17-openjdk-amd64'
-        PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+        PATH = "${env.JAVA_HOME}/bin:/var/lib/jenkins/.local/bin:${env.PATH}"
     }
     stages {
         stage('Checkout') {
@@ -29,13 +29,14 @@ pipeline {
                         else
                             echo "Ansible already installed"
                         fi
-                        if ! command -v ansible-lint >/dev/null 2>&1; then
-                            echo "ansible-lint not found, installing..."
-                            sudo apt install -y python3-pip
-                            pip3 install ansible-lint
+                        if ! command -v pipx >/dev/null 2>&1; then
+                            echo "pipx not found, installing..."
+                            sudo apt install -y pipx
                         else
-                            echo "ansible-lint already installed"
+                            echo "pipx already installed"
                         fi
+                        pipx install ansible-lint || pipx upgrade ansible-lint
+                        export PATH=/var/lib/jenkins/.local/bin:$PATH
                     '''
                 }
                 echo 'Dependencies setup completed for RBAC'
@@ -61,7 +62,8 @@ pipeline {
                 script {
                     sh '''
                         if [ -f rbac/rbac.yml ]; then
-                            ansible-playbook rbac/rbac.yml --check
+                            echo "localhost ansible_connection=local" > inventory.ini
+                            ansible-playbook -i inventory.ini rbac/rbac.yml --check
                         else
                             echo "ERROR: rbac/rbac.yml not found"
                             exit 1
@@ -76,7 +78,8 @@ pipeline {
                 script {
                     sh '''
                         if [ -f rbac/rbac.yml ]; then
-                            ansible-playbook rbac/rbac.yml
+                            echo "localhost ansible_connection=local" > inventory.ini
+                            ansible-playbook -i inventory.ini rbac/rbac.yml
                         else
                             echo "ERROR: rbac/rbac.yml not found"
                             exit 1
@@ -90,9 +93,9 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        # Example: Check if a user/role exists (adjust based on rbac.yml)
                         if [ -f rbac/rbac.yml ]; then
-                            ansible all -m command -a "id testuser" || {
+                            # Example: Check if testuser exists
+                            ansible -i inventory.ini all -m command -a "id testuser" || {
                                 echo "ERROR: RBAC testuser not configured"
                                 exit 1
                             }

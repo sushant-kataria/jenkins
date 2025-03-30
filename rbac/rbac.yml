@@ -1,7 +1,10 @@
 ---
-- name: Sample RBAC Playbook
-  hosts: localhost
+- name: Configure RBAC
+  hosts: all
+  become: true
   tasks:
-    - name: Print RBAC message
-      debug:
-        msg: "RBAC configuration applied"
+    - name: Create testuser
+      ansible.builtin.user:
+        name: testuser
+        state: present
+        shell: /bin/bash
