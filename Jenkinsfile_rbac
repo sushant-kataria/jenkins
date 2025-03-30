@@ -97,8 +97,8 @@ pipeline {
                         fi
                     '''
                     waitForQualityGate abortPipeline: true
+                    echo 'SonarQube analysis and quality gate check completed for RBAC'
                 }
-                echo 'SonarQube analysis and quality gate check completed for RBAC'
             }
         }
     }
