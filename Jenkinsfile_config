@@ -3,7 +3,7 @@ pipeline {
     environment {
         GIT_CREDENTIALS = credentials('791e2b80-a8ba-4d19-a472-a72a33d269f4')
         JAVA_HOME = '/usr/lib/jvm/java-17-openjdk-amd64'
-        PATH = "${env.JAVA_HOME}/bin:/var/lib/jenkins/.local/bin:${env.PATH}" // Add pipx bin path
+        PATH = "${env.JAVA_HOME}/bin:/var/lib/jenkins/.local/bin:${env.PATH}" // Include pipx bin path
     }
     stages {
         stage('Checkout') {
@@ -36,9 +36,8 @@ pipeline {
                             echo "pipx already installed"
                         fi
                         pipx install ansible-lint || pipx upgrade ansible-lint
-                        # Ensure PATH includes pipx binaries
-                        echo "export PATH=/var/lib/jenkins/.local/bin:$PATH" >> ~/.bashrc
-                        source ~/.bashrc
+                        # Set PATH directly in this session
+                        export PATH=/var/lib/jenkins/.local/bin:$PATH
                     '''
                 }
                 echo 'Dependencies setup completed for config'
@@ -49,7 +48,7 @@ pipeline {
                 script {
                     sh '''
                         if [ -f config/apache.yml ]; then
-                            pipx run ansible-lint config/apache.yml
+                            ansible-lint config/apache.yml  # pipx ensures it's in PATH
                         else
                             echo "ERROR: config/apache.yml not found"
                             exit 1
